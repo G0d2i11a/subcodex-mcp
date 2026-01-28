@@ -1,6 +1,24 @@
 # subcodex
 
-MCP server for running OpenAI Codex as a subagent from Claude Code, with stall detection and auto-recovery.
+MCP server for Claude Code to use OpenAI Codex as a subagent, with stall detection and auto-recovery.
+
+[中文文档](README.zh-CN.md)
+
+## Why subcodex?
+
+Claude Code and Codex have complementary strengths:
+
+| Role | Claude Code | Codex |
+|------|-------------|-------|
+| Analogy | Product Manager who understands requirements | Technical expert in deep focus |
+| Strengths | Planning, communication, context understanding | Coding, debugging, implementation |
+| Best at | Breaking down tasks, writing specs, verification | Writing code, fixing bugs, refactoring |
+
+**subcodex** bridges these two, letting Claude Code orchestrate Codex as a subagent:
+- Claude Code handles the "what" and "why" (requirements, planning, verification)
+- Codex handles the "how" (implementation, debugging)
+
+This combination delivers better results than either tool alone.
 
 ## Features
 
@@ -14,7 +32,7 @@ MCP server for running OpenAI Codex as a subagent from Claude Code, with stall d
 
 Configure in your `CLAUDE.md` to control when subcodex is used:
 
-### Mode 1: Full Subagent (全代理模式)
+### Mode 1: Full Subagent
 
 All code modifications go through subcodex. Claude only does analysis, planning, and verification.
 
@@ -26,7 +44,7 @@ All code changes must go through `mcp__subcodex__codex`:
 - Subcodex: all file edits, code generation, refactoring
 ```
 
-### Mode 2: Directory-Based (目录分工模式)
+### Mode 2: Directory-Based
 
 Different directories are handled by different executors.
 
@@ -40,7 +58,7 @@ Different directories are handled by different executors.
 | docs, config | Claude direct |
 ```
 
-### Mode 3: Fallback (降级模式)
+### Mode 3: Fallback
 
 Claude handles everything, but falls back to subcodex on failure.
 
@@ -63,7 +81,7 @@ npx subcodex
 ### From source
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/subcodex.git
+git clone https://github.com/G0d2i11a/subcodex.git
 cd subcodex
 pnpm install
 pnpm build
