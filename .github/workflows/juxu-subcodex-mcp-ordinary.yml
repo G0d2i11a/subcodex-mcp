@@ -1,0 +1,70 @@
+name: Verify Subcodex MCP
+on:
+  push:
+    branches: [ci/juxu-subcodex-mcp-ordinary-20261121]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify Subcodex MCP
+    if: >-
+      github.repository_id == '1144606887' &&
+      github.repository == 'G0d2i11a/subcodex-mcp' &&
+      github.ref == 'refs/heads/ci/juxu-subcodex-mcp-ordinary-20261121' &&
+      github.actor_id == '130071715' &&
+      github.triggering_actor == 'G0d2i11a' &&
+      github.run_attempt == 1
+    runs-on: juxu-subcodex-mcp-linux-amd64-v1
+    timeout-minutes: 45
+    steps:
+      - name: Verify ordinary Linux guest
+        env:
+          GUEST_ENVIRONMENT: ${{ runner.environment }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GUEST_ENVIRONMENT" == self-hosted && "$RUNNER_OS" == Linux && "$RUNNER_ARCH" == X64 ]]
+          [[ "$RUNNER_NAME" =~ ^juxu-subcodex-mcp-[a-f0-9]{16}$ ]]
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.22.1'
+
+      - name: Verify source and install locked dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]]
+          npm install --prefix "$RUNNER_TEMP/juxu-tools" --ignore-scripts --no-audit --no-fund pnpm@10.17.1
+          export PATH="$RUNNER_TEMP/juxu-tools/node_modules/.bin:$PATH"
+          printf '%s\n' "$RUNNER_TEMP/juxu-tools/node_modules/.bin" >> "$GITHUB_PATH"
+          pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build and verify the MCP server over stdio
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run build
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+          import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+
+          const client = new Client({ name: 'juxu-ci', version: '1.0.0' });
+          try {
+            await client.connect(new StdioClientTransport({ command: process.execPath, args: ['dist/index.js'] }));
+            const { tools } = await client.listTools();
+            assert.deepEqual(tools.map(tool => tool.name).sort(), ['reply', 'run']);
+            console.log('Verified the run and reply tools over stdio.');
+          } finally {
+            await client.close();
+          }
+          NODE
