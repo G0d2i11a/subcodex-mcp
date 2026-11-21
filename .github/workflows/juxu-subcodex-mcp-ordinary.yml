@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: juxu-subcodex-mcp-ordinary
+  cancel-in-progress: false
+
 jobs:
   verify:
     name: Verify Subcodex MCP
